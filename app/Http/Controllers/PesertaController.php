@@ -29,12 +29,28 @@ class PesertaController extends Controller
                 });
             }
 
-            $peserta = $query->orderBy('created_at', 'desc')->get();
+            // Pagination: 20 data per page
+            $perPage = $request->get('per_page', 20);
+            $page = $request->get('page', 1);
+            
+            // Validasi per_page maksimal 100
+            $perPage = min($perPage, 100);
+            
+            $peserta = $query->orderBy('created_at', 'desc')->paginate($perPage, ['*'], 'page', $page);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Data peserta berhasil diambil',
-                'data' => PesertaResource::collection($peserta)
+                'data' => PesertaResource::collection($peserta->items()),
+                'pagination' => [
+                    'current_page' => $peserta->currentPage(),
+                    'last_page' => $peserta->lastPage(),
+                    'per_page' => $peserta->perPage(),
+                    'total' => $peserta->total(),
+                    'from' => $peserta->firstItem(),
+                    'to' => $peserta->lastItem(),
+                    'has_more' => $peserta->hasMorePages()
+                ]
             ], 200);
         } catch (\Exception $e) {
             return response()->json([
