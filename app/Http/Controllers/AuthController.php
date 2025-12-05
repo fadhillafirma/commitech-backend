@@ -5,12 +5,18 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
     /**
-     * Register a new user
+     * Register a new user - INSTAGRAM STYLE
+     * 
+     * - Create user account
+     * - Create session dengan device info
+     * - Session expire 7 days
      */
     public function register(Request $request)
     {
@@ -19,6 +25,9 @@ class AuthController extends Controller
                 'name' => 'required|string|max:255',
                 'email' => 'required|string|email|max:255|unique:users',
                 'password' => 'required|string|min:8|confirmed',
+                'device_name' => 'required|string',
+                'device_type' => 'required|string',
+                'device_id' => 'required|string',
             ]);
 
             $user = User::create([
@@ -27,7 +36,31 @@ class AuthController extends Controller
                 'password' => Hash::make($validated['password']),
             ]);
 
-            $token = $user->createToken('auth_token')->plainTextToken;
+            // Create session dengan device info (7 days expiry)
+            $token = $user->createToken(
+                $request->device_name,
+                ['*'],
+                now()->addDays(7)
+            )->plainTextToken;
+            
+            // Get session ID from token
+            $sessionId = explode('|', $token)[0] ?? null;
+            
+            if ($sessionId) {
+                // Update session dengan device info
+                DB::table('sessions')
+                    ->where('id', $sessionId)
+                    ->update([
+                        'device_name' => $request->device_name,
+                        'device_type' => $request->device_type,
+                        'device_id' => $request->device_id,
+                        'ip_address' => $request->ip(),
+                        'user_agent' => $request->userAgent(),
+                        'location' => $this->getLocationFromIp($request->ip()),
+                        'last_activity' => now()->timestamp,
+                        'created_at' => now()->timestamp, // CRITICAL: Set created_at saat register
+                    ]);
+            }
 
             return response()->json([
                 'success' => true,
@@ -56,7 +89,12 @@ class AuthController extends Controller
     }
 
     /**
-     * Login user
+     * Login user - INSTAGRAM STYLE
+     * 
+     * - Multi-device support (tidak delete old tokens)
+     * - Check existing session untuk device yang sama
+     * - Update existing session atau create new
+     * - Session expire 7 days
      */
     public function login(Request $request)
     {
@@ -64,6 +102,9 @@ class AuthController extends Controller
             $request->validate([
                 'email' => 'required|email',
                 'password' => 'required',
+                'device_name' => 'required|string',
+                'device_type' => 'required|string',
+                'device_id' => 'required|string',
             ]);
 
             $user = User::where('email', $request->email)->first();
@@ -78,10 +119,53 @@ class AuthController extends Controller
                 ], 422);
             }
 
-            // Delete old tokens
-            $user->tokens()->delete();
-
-            $token = $user->createToken('auth_token')->plainTextToken;
+            // CRITICAL: Check if device already has session
+            $existingSession = DB::table('sessions')
+                ->where('user_id', $user->id)
+                ->where('device_id', $request->device_id)
+                ->first();
+            
+            if ($existingSession) {
+                // Device sudah punya session, update saja
+                // CRITICAL: Jangan update created_at, biarkan tetap dari login pertama
+                DB::table('sessions')
+                    ->where('id', $existingSession->id)
+                    ->update([
+                        'device_name' => $request->device_name,
+                        'ip_address' => $request->ip(),
+                        'user_agent' => $request->userAgent(),
+                        'location' => $this->getLocationFromIp($request->ip()),
+                        'last_activity' => now()->timestamp,
+                    ]);
+                
+                $token = $existingSession->id;
+            } else {
+                // Device baru, create new session (7 days expiry)
+                $token = $user->createToken(
+                    $request->device_name,
+                    ['*'],
+                    now()->addDays(7)
+                )->plainTextToken;
+                
+                // Get session ID from token
+                $sessionId = explode('|', $token)[0] ?? null;
+                
+                if ($sessionId) {
+                    // Update session record dengan device info
+                    DB::table('sessions')
+                        ->where('id', $sessionId)
+                        ->update([
+                            'device_name' => $request->device_name,
+                            'device_type' => $request->device_type,
+                            'device_id' => $request->device_id,
+                            'ip_address' => $request->ip(),
+                            'user_agent' => $request->userAgent(),
+                            'location' => $this->getLocationFromIp($request->ip()),
+                            'last_activity' => now()->timestamp,
+                            'created_at' => now()->timestamp, // CRITICAL: Set created_at saat login baru
+                        ]);
+                }
+            }
 
             return response()->json([
                 'success' => true,
@@ -137,5 +221,39 @@ class AuthController extends Controller
                 ]
             ]
         ]);
+    }
+    
+    /**
+     * Get location from IP address
+     * 
+     * INSTAGRAM-STYLE:
+     * - Track user location untuk security
+     * - Show di Active Sessions
+     * - Detect suspicious login
+     * 
+     * Uses ip-api.com (free, no API key required)
+     */
+    private function getLocationFromIp($ip)
+    {
+        // Skip for local IPs
+        if (in_array($ip, ['127.0.0.1', '::1', 'localhost'])) {
+            return 'Local';
+        }
+        
+        try {
+            // Call ip-api.com (free, 45 req/min limit)
+            $response = Http::timeout(2)->get("http://ip-api.com/json/{$ip}");
+            
+            if ($response->successful()) {
+                $data = $response->json();
+                if (isset($data['city']) && isset($data['country'])) {
+                    return "{$data['city']}, {$data['country']}";
+                }
+            }
+        } catch (\Exception $e) {
+            // Ignore error, return Unknown
+        }
+        
+        return 'Unknown';
     }
 }
