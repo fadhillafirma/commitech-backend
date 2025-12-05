@@ -1,11 +1,13 @@
 <?php
 
+use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\AuthController;
-use App\Http\Controllers\HasilWawancaraController;
-use App\Http\Controllers\PengumumanController;
-use App\Http\Controllers\EksporController;
-use App\Http\Controllers\DivisiController;
+use App\Http\Controllers\DivisionController;
+use App\Http\Controllers\ExportController;
+use App\Http\Controllers\InterviewResultController;
 use App\Http\Controllers\PesertaController;
+use App\Http\Controllers\FCMController;
+use App\Http\Controllers\SessionController;
 use App\Http\Controllers\JadwalRekrutmenController;
 use Illuminate\Support\Facades\Route;
 
@@ -17,6 +19,22 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', [AuthController::class, 'user']);
+
+    // ==========================================
+    // Route FCM Token Management
+    // ==========================================
+    Route::post('/fcm/register', [FCMController::class, 'registerToken']);
+    Route::post('/fcm/unregister', [FCMController::class, 'unregisterToken']);
+    Route::get('/fcm/devices', [FCMController::class, 'getDevices']);
+    Route::delete('/fcm/devices/{deviceId}', [FCMController::class, 'deleteDevice']);
+
+    // ==========================================
+    // Route Session Management (HYBRID APPROACH)
+    // ==========================================
+    Route::get('/session/check', [SessionController::class, 'checkSession']);
+    Route::get('/session/list', [SessionController::class, 'getActiveSessions']);
+    Route::delete('/session/{id}', [SessionController::class, 'revokeSession']);
+    Route::post('/session/revoke-others', [SessionController::class, 'revokeOtherSessions']);
 
     // ==========================================
     // Route Hasil Wawancara (Modul Afiq - Fitur 16-17)
