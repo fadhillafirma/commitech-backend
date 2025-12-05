@@ -6,6 +6,7 @@ use App\Http\Controllers\PengumumanController;
 use App\Http\Controllers\EksporController;
 use App\Http\Controllers\DivisiController;
 use App\Http\Controllers\PesertaController;
+use App\Http\Controllers\JadwalRekrutmenController;
 use Illuminate\Support\Facades\Route;
 
 // Route Publik
@@ -52,4 +53,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/peserta/{id}', [PesertaController::class, 'update']);               // 6. Ubah data
     Route::delete('/peserta/{id}', [PesertaController::class, 'destroy']);          // 7. Hapus data
     Route::post('/peserta/import-excel', [PesertaController::class, 'importExcel']); // Import Excel
+
+    // ==========================================
+    // Route Jadwal Rekrutmen
+    // ==========================================
+    Route::get('/jadwal-rekrutmen', [JadwalRekrutmenController::class, 'index']);      // Lihat semua
+    Route::get('/jadwal-rekrutmen/{id}', [JadwalRekrutmenController::class, 'show']);  // Lihat detail
+    Route::post('/jadwal-rekrutmen', [JadwalRekrutmenController::class, 'store']);      // Tambah jadwal
+    Route::put('/jadwal-rekrutmen/{id}', [JadwalRekrutmenController::class, 'update']); // Ubah jadwal
+    Route::delete('/jadwal-rekrutmen/{id}', [JadwalRekrutmenController::class, 'destroy']); // Hapus jadwal
 });
