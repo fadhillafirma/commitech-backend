@@ -34,11 +34,12 @@ class Peserta extends Model
     ];
 
     /**
-     * Cast boolean fields to ensure JSON returns true/false instead of 0/1
+     * Cast fields
+     * 
+     * PERBAIKAN: formulir_pendaftaran dan surat_komitmen sekarang string (URL)
+     * bukan boolean, agar bisa menyimpan link Google Drive
      */
     protected $casts = [
-        'formulir_pendaftaran' => 'boolean',
-        'surat_komitmen' => 'boolean',
         'pindah_divisi' => 'boolean',
     ];
 
