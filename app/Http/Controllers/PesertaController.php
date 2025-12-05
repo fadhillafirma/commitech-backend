@@ -159,6 +159,8 @@ class PesertaController extends Controller
                 'tanggal_jadwal' => 'nullable|string',
                 'waktu_jadwal' => 'nullable|string',
                 'lokasi' => 'nullable|string|max:255',
+                'formulir_pendaftaran' => 'sometimes|boolean',
+                'surat_komitmen' => 'sometimes|boolean',
             ]);
 
             $peserta->update($validated);
@@ -362,6 +364,72 @@ class PesertaController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Gagal mengimpor file Excel',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Update status seleksi berkas peserta
+     * 
+     * Endpoint: PUT /api/peserta/{id}/status-seleksi-berkas
+     * Body: { "status": "lulus" | "tidak_lulus" }
+     */
+    public function updateStatusSeleksiBerkas(Request $request, $id)
+    {
+        try {
+            $peserta = Peserta::find($id);
+
+            if (!$peserta) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Peserta tidak ditemukan'
+                ], 404);
+            }
+
+            $validator = Validator::make($request->all(), [
+                'status' => 'required|in:lulus,tidak_lulus',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validasi gagal',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            // Update status_seleksi_berkas berdasarkan input
+            $statusValue = $request->status === 'lulus' ? 'lulus' : 'tidak_lulus';
+            
+            // Update status_seleksi_berkas dan juga update formulir_pendaftaran/surat_komitmen untuk kompatibilitas
+            if ($request->status === 'lulus') {
+                // Lulus = formulir_pendaftaran = true, surat_komitmen = true
+                $peserta->update([
+                    'status_seleksi_berkas' => 'lulus',
+                    'formulir_pendaftaran' => true,
+                    'surat_komitmen' => true,
+                ]);
+            } else {
+                // Tidak lulus = set status dan kedua field menjadi false
+                $peserta->update([
+                    'status_seleksi_berkas' => 'tidak_lulus',
+                    'formulir_pendaftaran' => false,
+                    'surat_komitmen' => false,
+                ]);
+            }
+
+            $peserta->refresh();
+
+            return response()->json([
+                'success' => true,
+                'message' => "Status seleksi berkas berhasil diupdate menjadi: {$request->status}",
+                'data' => new PesertaResource($peserta)
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengupdate status seleksi berkas',
                 'error' => $e->getMessage()
             ], 500);
         }

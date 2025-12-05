@@ -36,29 +36,26 @@ class AuthController extends Controller
                 'password' => Hash::make($validated['password']),
             ]);
 
-            // Create session dengan device info (7 days expiry)
+            // Create token dengan device info (7 days expiry)
             $token = $user->createToken(
                 $request->device_name,
                 ['*'],
                 now()->addDays(7)
             )->plainTextToken;
             
-            // Get session ID from token
-            $sessionId = explode('|', $token)[0] ?? null;
+            // Get token ID from token
+            $tokenId = explode('|', $token)[0] ?? null;
             
-            if ($sessionId) {
-                // Update session dengan device info
-                DB::table('sessions')
-                    ->where('id', $sessionId)
+            if ($tokenId) {
+                // Update token record dengan device info
+                DB::table('personal_access_tokens')
+                    ->where('id', $tokenId)
                     ->update([
-                        'device_name' => $request->device_name,
                         'device_type' => $request->device_type,
                         'device_id' => $request->device_id,
                         'ip_address' => $request->ip(),
                         'user_agent' => $request->userAgent(),
                         'location' => $this->getLocationFromIp($request->ip()),
-                        'last_activity' => now()->timestamp,
-                        'created_at' => now()->timestamp, // CRITICAL: Set created_at saat register
                     ]);
             }
 
@@ -99,17 +96,55 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         try {
-            $request->validate([
-                'email' => 'required|email',
-                'password' => 'required',
-                'device_name' => 'required|string',
-                'device_type' => 'required|string',
-                'device_id' => 'required|string',
+            // Log incoming request untuk debugging
+            \Log::info('Login attempt', [
+                'email' => $request->email,
+                'has_password' => !empty($request->password),
+                'device_name' => $request->device_name ?? 'missing',
+                'device_type' => $request->device_type ?? 'missing',
+                'device_id' => $request->device_id ?? 'missing',
             ]);
+            
+            // Trim email untuk menghilangkan whitespace dan pastikan tidak kosong
+            $email = trim($request->email ?? '');
+            
+            // Validasi email tidak kosong setelah trim
+            if (empty($email)) {
+                \Log::warning('Login failed: Empty email after trim');
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => [
+                        'email' => ['The email field is required.']
+                    ]
+                ], 422);
+            }
+            
+            // Merge email yang sudah di-trim ke request
+            $request->merge(['email' => $email]);
+            
+            try {
+                $request->validate([
+                    'email' => 'required|email', // Validasi email standard
+                    'password' => 'required',
+                    'device_name' => 'required|string',
+                    'device_type' => 'required|string',
+                    'device_id' => 'required|string',
+                ]);
+            } catch (ValidationException $e) {
+                \Log::warning('Login validation failed', ['errors' => $e->errors()]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $e->errors()
+                ], 422);
+            }
 
-            $user = User::where('email', $request->email)->first();
+            // Gunakan email yang sudah di-trim untuk query (case-insensitive)
+            $user = User::whereRaw('LOWER(email) = ?', [strtolower($email)])->first();
 
-            if (!$user || !Hash::check($request->password, $user->password)) {
+            if (!$user) {
+                \Log::warning('Login attempt failed: User not found', ['email' => $email]);
                 return response()->json([
                     'success' => false,
                     'message' => 'The provided credentials are incorrect.',
@@ -119,50 +154,94 @@ class AuthController extends Controller
                 ], 422);
             }
 
-            // CRITICAL: Check if device already has session
-            $existingSession = DB::table('sessions')
-                ->where('user_id', $user->id)
+            // Verify password
+            if (!Hash::check($request->password, $user->password)) {
+                \Log::warning('Login attempt failed: Invalid password', [
+                    'email' => $email,
+                    'user_id' => $user->id
+                ]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'The provided credentials are incorrect.',
+                    'errors' => [
+                        'email' => ['The provided credentials are incorrect.']
+                    ]
+                ], 422);
+            }
+            
+            \Log::info('Login successful', ['email' => $email, 'user_id' => $user->id]);
+
+            // CRITICAL: Check if device already has token di personal_access_tokens
+            $existingToken = DB::table('personal_access_tokens')
+                ->where('tokenable_id', $user->id)
+                ->where('tokenable_type', User::class)
                 ->where('device_id', $request->device_id)
+                ->where(function($query) {
+                    $query->whereNull('expires_at')
+                          ->orWhere('expires_at', '>', now());
+                })
                 ->first();
             
-            if ($existingSession) {
-                // Device sudah punya session, update saja
-                // CRITICAL: Jangan update created_at, biarkan tetap dari login pertama
-                DB::table('sessions')
-                    ->where('id', $existingSession->id)
+            if ($existingToken) {
+                // Device sudah punya token yang masih valid, update saja
+                DB::table('personal_access_tokens')
+                    ->where('id', $existingToken->id)
                     ->update([
-                        'device_name' => $request->device_name,
+                        'name' => $request->device_name,
+                        'device_type' => $request->device_type,
                         'ip_address' => $request->ip(),
                         'user_agent' => $request->userAgent(),
                         'location' => $this->getLocationFromIp($request->ip()),
-                        'last_activity' => now()->timestamp,
+                        'last_used_at' => now(),
                     ]);
                 
-                $token = $existingSession->id;
-            } else {
-                // Device baru, create new session (7 days expiry)
+                // Get token hash untuk reconstruct token
+                // Note: Kita tidak bisa reconstruct token dari hash, jadi kita perlu buat token baru
+                // atau simpan token plain di database (tidak recommended untuk security)
+                // Solusi: Delete token lama dan buat baru dengan device yang sama
+                DB::table('personal_access_tokens')->where('id', $existingToken->id)->delete();
+                
+                // Create new token untuk device yang sama
                 $token = $user->createToken(
                     $request->device_name,
                     ['*'],
                     now()->addDays(7)
                 )->plainTextToken;
                 
-                // Get session ID from token
-                $sessionId = explode('|', $token)[0] ?? null;
-                
-                if ($sessionId) {
-                    // Update session record dengan device info
-                    DB::table('sessions')
-                        ->where('id', $sessionId)
+                // Update token dengan device info
+                $tokenId = explode('|', $token)[0] ?? null;
+                if ($tokenId) {
+                    DB::table('personal_access_tokens')
+                        ->where('id', $tokenId)
                         ->update([
-                            'device_name' => $request->device_name,
                             'device_type' => $request->device_type,
                             'device_id' => $request->device_id,
                             'ip_address' => $request->ip(),
                             'user_agent' => $request->userAgent(),
                             'location' => $this->getLocationFromIp($request->ip()),
-                            'last_activity' => now()->timestamp,
-                            'created_at' => now()->timestamp, // CRITICAL: Set created_at saat login baru
+                        ]);
+                }
+            } else {
+                // Device baru, create new token (7 days expiry)
+                $token = $user->createToken(
+                    $request->device_name,
+                    ['*'],
+                    now()->addDays(7)
+                )->plainTextToken;
+                
+                // Get token ID from token
+                $tokenId = explode('|', $token)[0] ?? null;
+                
+                if ($tokenId) {
+                    // Update token record dengan device info
+                    DB::table('personal_access_tokens')
+                        ->where('id', $tokenId)
+                        ->update([
+                            'device_type' => $request->device_type,
+                            'device_id' => $request->device_id,
+                            'ip_address' => $request->ip(),
+                            'user_agent' => $request->userAgent(),
+                            'location' => $this->getLocationFromIp($request->ip()),
                         ]);
                 }
             }

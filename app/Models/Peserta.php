@@ -28,6 +28,7 @@ class Peserta extends Model
         'formulir_pendaftaran',
         'surat_komitmen',
         'pindah_divisi',
+        'status_seleksi_berkas',
         'tanggal_jadwal',
         'waktu_jadwal',
         'lokasi',

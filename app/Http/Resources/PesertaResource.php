@@ -35,6 +35,9 @@ class PesertaResource extends JsonResource
             'surat_komitmen' => (bool) $this->surat_komitmen,
             'pindah_divisi' => (bool) $this->pindah_divisi,
             
+            // Status seleksi berkas: belum_direview, lulus, tidak_lulus
+            'status_seleksi_berkas' => $this->status_seleksi_berkas ?? 'belum_direview',
+            
             'tanggal_jadwal' => $this->tanggal_jadwal,
             'waktu_jadwal' => $this->waktu_jadwal,
             'lokasi' => $this->lokasi,
