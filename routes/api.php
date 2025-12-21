@@ -72,6 +72,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/peserta/{id}', [PesertaController::class, 'destroy']);          // 7. Hapus data
     Route::post('/peserta/import-excel', [PesertaController::class, 'importExcel']); // Import Excel
     Route::put('/peserta/{id}/status-seleksi-berkas', [PesertaController::class, 'updateStatusSeleksiBerkas']); // Update status seleksi berkas
+    Route::get('/peserta/lulus-tanpa-jadwal', [PesertaController::class, 'getPesertaLulusTanpaJadwal']); // Get peserta lulus tanpa jadwal
 
     // ==========================================
     // Route Jadwal Rekrutmen

@@ -200,18 +200,12 @@ class JadwalRekrutmenController extends Controller
             $jamMulai = (int)($waktuMulaiParts[0] ?? 0);
             $menitMulai = (int)($waktuMulaiParts[1] ?? 0);
 
-            foreach ($pesertaIds as $index => $pesertaId) {
-                // Hitung waktu untuk peserta ini (setiap 6 menit)
-                $menitJadwal = $menitMulai + ($index * 6);
-                $jamJadwal = $jamMulai + (int)($menitJadwal / 60);
-                $menitJadwal = $menitJadwal % 60;
-                $waktuJadwal = sprintf("%02d:%02d", $jamJadwal, $menitJadwal) . " WIB";
-
+            foreach ($pesertaIds as $pesertaId) {
                 $peserta = Peserta::find($pesertaId);
                 if ($peserta) {
+                    // Update peserta dengan jadwal_rekrutmen_id
                     $peserta->update([
-                        'tanggal_jadwal' => $tanggalJadwal,
-                        'waktu_jadwal' => $waktuJadwal,
+                        'jadwal_rekrutmen_id' => $jadwal->id,
                         'lokasi' => $lokasi,
                     ]);
                     $updatedCount++;
@@ -254,9 +248,9 @@ class JadwalRekrutmenController extends Controller
             ], 404);
         }
 
-        // Cari peserta yang memiliki tanggal_jadwal sama dengan jadwal ini
-        $peserta = Peserta::where('tanggal_jadwal', $jadwal->tanggal_mulai)
-            ->orderBy('waktu_jadwal', 'asc')
+        // Cari peserta yang memiliki jadwal_rekrutmen_id sama dengan jadwal ini
+        $peserta = Peserta::where('jadwal_rekrutmen_id', $jadwal->id)
+            ->orderBy('id', 'asc')
             ->get();
 
         return response()->json([
@@ -293,8 +287,7 @@ class JadwalRekrutmenController extends Controller
 
         // Hapus jadwal dari peserta (set null)
         $peserta->update([
-            'tanggal_jadwal' => null,
-            'waktu_jadwal' => null,
+            'jadwal_rekrutmen_id' => null,
             'lokasi' => null,
         ]);
 

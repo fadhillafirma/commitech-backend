@@ -19,5 +19,10 @@ class JadwalRekrutmen extends Model
         'waktu_selesai',
         'pewawancara',
     ];
+
+    public function peserta()
+    {
+        return $this->hasMany(Peserta::class, 'jadwal_rekrutmen_id');
+    }
 }
 

@@ -29,18 +29,18 @@ class PesertaResource extends JsonResource
             'alasan_2' => $this->alasan_2,
             'alasan_3' => $this->alasan_3,
             'krs_terakhir' => $this->krs_terakhir,
+            'formulir_pendaftaran' =>$this->formulir_pendaftaran,
+            'surat_komitmen' =>$this->surat_komitmen,
             
             // ✅ Guarantee boolean type - fix boolean issue!
-            'formulir_pendaftaran' => (bool) $this->formulir_pendaftaran,
-            'surat_komitmen' => (bool) $this->surat_komitmen,
             'pindah_divisi' => (bool) $this->pindah_divisi,
             
-            // Status seleksi berkas: belum_direview, lulus, tidak_lulus
-            'status_seleksi_berkas' => $this->status_seleksi_berkas ?? 'belum_direview',
-            
-            'tanggal_jadwal' => $this->tanggal_jadwal,
-            'waktu_jadwal' => $this->waktu_jadwal,
+            // Jadwal wawancara menggunakan jadwal_rekrutmen_id
+            'jadwal_rekrutmen_id' => $this->jadwal_rekrutmen_id,
+            'tanggal_jadwal' => $this->jadwalRekrutmen?->tanggal_mulai,
+            'waktu_jadwal' => $this->jadwalRekrutmen?->waktu_mulai,
             'lokasi' => $this->lokasi,
+            'status_seleksi_berkas' => $this->status_seleksi_berkas ?? 'belum_direview',
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),
         ];

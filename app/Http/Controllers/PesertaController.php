@@ -105,8 +105,7 @@ class PesertaController extends Controller
                 'pilihan_divisi_2' => 'nullable|string|max:255',
                 'alasan_1' => 'nullable|string',
                 'alasan_2' => 'nullable|string',
-                'tanggal_jadwal' => 'nullable|string',
-                'waktu_jadwal' => 'nullable|string',
+                'jadwal_rekrutmen_id' => 'nullable|integer|exists:jadwal_rekrutmen,id',
                 'lokasi' => 'nullable|string|max:255',
             ]);
 
@@ -156,11 +155,8 @@ class PesertaController extends Controller
                 'pilihan_divisi_2' => 'nullable|string|max:255',
                 'alasan_1' => 'nullable|string',
                 'alasan_2' => 'nullable|string',
-                'tanggal_jadwal' => 'nullable|string',
-                'waktu_jadwal' => 'nullable|string',
+                'jadwal_rekrutmen_id' => 'nullable|integer|exists:jadwal_rekrutmen,id',
                 'lokasi' => 'nullable|string|max:255',
-                'formulir_pendaftaran' => 'sometimes|boolean',
-                'surat_komitmen' => 'sometimes|boolean',
             ]);
 
             $peserta->update($validated);
@@ -286,48 +282,15 @@ class PesertaController extends Controller
             // Skip header row (row 1)
             $imported = 0;
             $errors = [];
-            $skipped = 0;
-            
-            // DEBUG: Log jumlah rows
-            \Log::info("=== IMPORT EXCEL START ===");
-            \Log::info("Total rows in Excel (including header): " . count($rows));
 
             foreach ($rows as $index => $row) {
                 // Skip header
                 if ($index === 0) {
-                    \Log::info("Row 0: HEADER - skipped");
                     continue;
                 }
 
-                // DEBUG: Log row untuk debugging (hanya 3 kolom pertama untuk privacy)
-                \Log::info("Row {$index}: Email=" . ($row[1] ?? 'null') . ", Nama=" . ($row[2] ?? 'null') . ", NIM=" . ($row[3] ?? 'null'));
-                
-                // PERBAIKAN: Cek jika row benar-benar kosong (semua kolom kosong)
-                $isRowEmpty = true;
-                foreach ($row as $cell) {
-                    if (!empty($cell) && trim($cell) !== '') {
-                        $isRowEmpty = false;
-                        break;
-                    }
-                }
-                
-                if ($isRowEmpty) {
-                    \Log::info("Row {$index}: COMPLETELY EMPTY - skipped");
-                    $skipped++;
-                    continue;
-                }
-                
-                // Ambil nama dan bersihkan whitespace
-                $nama = isset($row[2]) ? trim((string)$row[2]) : '';
-                
-                // Skip jika nama kosong
-                if ($nama === '' || $nama === null) {
-                    \Log::warning("Row {$index}: Nama kosong atau null - skipped");
-                    $errors[] = [
-                        'row' => $index + 1,
-                        'error' => 'Nama lengkap kosong (kolom C). Data: ' . json_encode(array_slice($row, 0, 4))
-                    ];
-                    $skipped++;
+                // Skip empty rows - cek nama lengkap (index 2) yang wajib
+                if (empty($row[2]) || trim($row[2]) === '') {
                     continue;
                 }
 
@@ -345,83 +308,52 @@ class PesertaController extends Controller
                     // 9. Alasan Memilih (Pilihan 2)
                     // 10. Pilihan 3
                     // 11. Alasan Memilih (Pilihan 3)
-                    // 12. KRS Terbaru (Link Google Drive)
-                    // 13. Formulir Pendaftaran (Link Google Drive)
-                    // 14. Surat Komitmen (Link Google Drive)
+                    // 12. KRS Terakhir
+                    // 13. Formulir Pendaftaran
+                    // 14. Surat Komitmen
                     // 15. Pindah divisi
                     
-                    // PERBAIKAN: Helper function untuk clean dan convert value
-                    $cleanValue = function($value) {
-                        if ($value === null || $value === '') return null;
-                        $cleaned = trim((string)$value);
-                        return $cleaned === '' ? null : $cleaned;
-                    };
+                    // NOTE: Timestamp di index 0 diabaikan/tidak digunakan
                     
-                    // Prepare data dengan cleaning
-                    $data = [
-                        'nama' => $nama,
-                        'email' => $cleanValue($row[1] ?? null),
-                        'nim' => $cleanValue($row[3] ?? null),
-                        'jurusan' => $cleanValue($row[4] ?? null),
-                        'angkatan' => $cleanValue($row[5] ?? null),
-                        'pilihan_divisi_1' => $cleanValue($row[6] ?? null),
-                        'alasan_1' => $cleanValue($row[7] ?? null),
-                        'pilihan_divisi_2' => $cleanValue($row[8] ?? null),
-                        'alasan_2' => $cleanValue($row[9] ?? null),
-                        'pilihan_divisi_3' => $cleanValue($row[10] ?? null),
-                        'alasan_3' => $cleanValue($row[11] ?? null),
-                        'krs_terakhir' => $cleanValue($row[12] ?? null),
-                        'formulir_pendaftaran' => $cleanValue($row[13] ?? null),
-                        'surat_komitmen' => $cleanValue($row[14] ?? null),
-                        'pindah_divisi' => false, // Default false
-                    ];
-                    
-                    // Handle pindah_divisi boolean
-                    if (isset($row[15]) && !empty($row[15])) {
-                        $pindahDivisi = strtolower(trim((string)$row[15]));
-                        $data['pindah_divisi'] = in_array($pindahDivisi, ['ya', 'yes', '1', 'true']);
+                    // Skip jika nama kosong
+                    $nama = trim($row[2] ?? ''); // Nama Lengkap di index 2 (Timestamp di index 0 diabaikan)
+                    if (empty($nama)) {
+                        continue;
                     }
                     
-                    \Log::info("Row {$index}: Creating peserta dengan nama '{$nama}'");
-                    
-                    // Create peserta
-                    Peserta::create($data);
+                    Peserta::create([
+                        'nama' => $nama,
+                        'email' => !empty($row[1]) ? trim($row[1]) : null, // Email di index 1
+                        'nim' => !empty($row[3]) ? trim($row[3]) : null, // NIM di index 3
+                        'jurusan' => !empty($row[4]) ? trim($row[4]) : null, // Jurusan di index 4
+                        'angkatan' => !empty($row[5]) ? trim($row[5]) : null, // Angkatan di index 5
+                        'pilihan_divisi_1' => !empty($row[6]) ? trim($row[6]) : null, // Pilihan 1 di index 6
+                        'alasan_1' => !empty($row[7]) ? trim($row[7]) : null, // Alasan Memilih di index 7
+                        'pilihan_divisi_2' => !empty($row[8]) ? trim($row[8]) : null, // Pilihan 2 di index 8
+                        'alasan_2' => !empty($row[9]) ? trim($row[9]) : null, // Alasan Memilih di index 9
+                        'pilihan_divisi_3' => !empty($row[10]) ? trim($row[10]) : null, // Pilihan 3 di index 10
+                        'alasan_3' => !empty($row[11]) ? trim($row[11]) : null, // Alasan Memilih di index 11
+                        'krs_terakhir' => !empty($row[12]) ? trim($row[12]) : null, // KRS Terakhir di index 12
+                        'formulir_pendaftaran' => !empty($row[13]) && (strtolower(trim($row[13])) === 'ya' || strtolower(trim($row[13])) === 'yes' || trim($row[13]) === '1'),
+                        'surat_komitmen' => !empty($row[14]) && (strtolower(trim($row[14])) === 'ya' || strtolower(trim($row[14])) === 'yes' || trim($row[14]) === '1'),
+                        'pindah_divisi' => !empty($row[15]) && (strtolower(trim($row[15])) === 'ya' || strtolower(trim($row[15])) === 'yes' || trim($row[15]) === '1'),
+                    ]);
 
                     $imported++;
-                    \Log::info("Row {$index}: SUCCESS - {$nama} imported");
                 } catch (\Exception $e) {
-                    \Log::error("Row {$index}: FAILED - " . $e->getMessage());
-                    \Log::error("Row {$index}: Stack trace - " . $e->getTraceAsString());
                     $errors[] = [
                         'row' => $index + 1,
-                        'error' => $e->getMessage(),
-                        'nama' => $nama ?? 'Unknown'
+                        'error' => $e->getMessage()
                     ];
                 }
-            }
-            
-            \Log::info("=== IMPORT EXCEL END ===");
-            \Log::info("Total imported: {$imported}");
-            \Log::info("Total errors: " . count($errors));
-            \Log::info("Total skipped: {$skipped}");
-
-            // Kembalikan response dengan detail errors
-            $message = "Berhasil mengimpor {$imported} data peserta";
-            if ($skipped > 0) {
-                $message .= ". {$skipped} baris kosong dilewati";
-            }
-            if (count($errors) > 0) {
-                $message .= ". " . count($errors) . " baris gagal diimpor";
             }
 
             return response()->json([
                 'success' => true,
-                'message' => $message,
+                'message' => "Berhasil mengimpor {$imported} data peserta",
                 'data' => [
                     'imported' => $imported,
-                    'skipped' => $skipped,
-                    'total_rows' => count($rows) - 1, // Minus header
-                    'errors' => count($errors) > 0 ? $errors : null
+                    'errors' => $errors
                 ]
             ], 200);
         } catch (\Exception $e) {
@@ -434,10 +366,34 @@ class PesertaController extends Controller
     }
 
     /**
+     * Get peserta yang lulus seleksi berkas tapi belum ada jadwal wawancara
+     */
+    public function getPesertaLulusTanpaJadwal(Request $request)
+    {
+        try {
+            $query = Peserta::query()
+                ->where('status_seleksi_berkas', 'lulus')
+                ->whereNull('jadwal_rekrutmen_id')
+                ->orderBy('nama', 'asc');
+
+            $peserta = $query->get();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Data peserta lulus tanpa jadwal berhasil diambil',
+                'data' => PesertaResource::collection($peserta)
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengambil data peserta',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Update status seleksi berkas peserta
-     * 
-     * Endpoint: PUT /api/peserta/{id}/status-seleksi-berkas
-     * Body: { "status": "lulus" | "tidak_lulus" }
      */
     public function updateStatusSeleksiBerkas(Request $request, $id)
     {
@@ -451,45 +407,27 @@ class PesertaController extends Controller
                 ], 404);
             }
 
-            $validator = Validator::make($request->all(), [
-                'status' => 'required|in:lulus,tidak_lulus',
+            $validated = $request->validate([
+                'status' => 'required|string|in:lulus,tidak_lulus,belum_direview',
             ]);
 
-            if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validasi gagal',
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-
-            // Update status_seleksi_berkas berdasarkan input
-            $statusValue = $request->status === 'lulus' ? 'lulus' : 'tidak_lulus';
-            
-            // Update status_seleksi_berkas dan juga update formulir_pendaftaran/surat_komitmen untuk kompatibilitas
-            if ($request->status === 'lulus') {
-                // Lulus = formulir_pendaftaran = true, surat_komitmen = true
-                $peserta->update([
-                    'status_seleksi_berkas' => 'lulus',
-                    'formulir_pendaftaran' => true,
-                    'surat_komitmen' => true,
-                ]);
-            } else {
-                // Tidak lulus = set status dan kedua field menjadi false
-                $peserta->update([
-                    'status_seleksi_berkas' => 'tidak_lulus',
-                    'formulir_pendaftaran' => false,
-                    'surat_komitmen' => false,
-                ]);
-            }
+            $peserta->update([
+                'status_seleksi_berkas' => $validated['status']
+            ]);
 
             $peserta->refresh();
 
             return response()->json([
                 'success' => true,
-                'message' => "Status seleksi berkas berhasil diupdate menjadi: {$request->status}",
+                'message' => 'Status seleksi berkas berhasil diupdate',
                 'data' => new PesertaResource($peserta)
             ], 200);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validasi gagal',
+                'errors' => $e->errors()
+            ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,

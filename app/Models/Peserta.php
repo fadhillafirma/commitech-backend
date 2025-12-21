@@ -28,19 +28,17 @@ class Peserta extends Model
         'formulir_pendaftaran',
         'surat_komitmen',
         'pindah_divisi',
-        'status_seleksi_berkas',
-        'tanggal_jadwal',
-        'waktu_jadwal',
+        'jadwal_rekrutmen_id',
         'lokasi',
+        'status_seleksi_berkas',
     ];
 
     /**
-     * Cast fields
-     * 
-     * PERBAIKAN: formulir_pendaftaran dan surat_komitmen sekarang string (URL)
-     * bukan boolean, agar bisa menyimpan link Google Drive
+     * Cast boolean fields to ensure JSON returns true/false instead of 0/1
      */
     protected $casts = [
+        'formulir_pendaftaran' => 'boolean',
+        'surat_komitmen' => 'boolean',
         'pindah_divisi' => 'boolean',
     ];
 
@@ -53,5 +51,10 @@ class Peserta extends Model
     {
         return $this->belongsToMany(Pengumuman::class, 'pengumuman_peserta')
             ->withTimestamps();
+    }
+
+    public function jadwalRekrutmen()
+    {
+        return $this->belongsTo(JadwalRekrutmen::class, 'jadwal_rekrutmen_id');
     }
 }
