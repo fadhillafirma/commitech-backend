@@ -66,13 +66,15 @@ Route::middleware('auth:sanctum')->group(function () {
     // Route Peserta/Data Pendaftar (Modul 1 - Fitur 2-7)
     // ==========================================
     Route::get('/peserta', [PesertaController::class, 'index']);                    // 3. Lihat daftar
+    Route::get('/peserta/lulus-tanpa-jadwal', [PesertaController::class, 'getPesertaLulusTanpaJadwal']); // Get peserta lulus tanpa jadwal
+    Route::get('/peserta/count-lulus', [PesertaController::class, 'countPesertaLulus']); // Count peserta lulus seleksi berkas
+    Route::get('/peserta/pending-wawancara', [PesertaController::class, 'getPesertaPendingWawancara']);
     Route::get('/peserta/{id}', [PesertaController::class, 'show']);                 // 5. Lihat detail
     Route::post('/peserta', [PesertaController::class, 'store']);                    // 2. Tambah data
     Route::put('/peserta/{id}', [PesertaController::class, 'update']);               // 6. Ubah data
     Route::delete('/peserta/{id}', [PesertaController::class, 'destroy']);          // 7. Hapus data
     Route::post('/peserta/import-excel', [PesertaController::class, 'importExcel']); // Import Excel
     Route::put('/peserta/{id}/status-seleksi-berkas', [PesertaController::class, 'updateStatusSeleksiBerkas']); // Update status seleksi berkas
-    Route::get('/peserta/lulus-tanpa-jadwal', [PesertaController::class, 'getPesertaLulusTanpaJadwal']); // Get peserta lulus tanpa jadwal
 
     // ==========================================
     // Route Jadwal Rekrutmen

@@ -61,6 +61,55 @@ class PesertaController extends Controller
         }
     }
 
+    public function getPesertaPendingWawancara(Request $request)
+    {
+        try {
+            $peserta = Peserta::query()
+                ->where('status_seleksi_berkas', 'lulus')
+                ->whereDoesntHave('hasilWawancara')
+                ->orderBy('nama', 'asc')
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Data peserta pending wawancara berhasil diambil',
+                'data' => PesertaResource::collection($peserta)
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengambil data peserta pending wawancara',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Count peserta yang lulus seleksi berkas
+     */
+    public function countPesertaLulus(Request $request)
+    {
+        try {
+            $count = Peserta::query()
+                ->where('status_seleksi_berkas', 'lulus')
+                ->count();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Jumlah peserta lulus seleksi berkas berhasil diambil',
+                'data' => [
+                    'count' => $count
+                ]
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengambil jumlah peserta lulus seleksi berkas',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
     /**
      * Get single peserta by ID
      */
