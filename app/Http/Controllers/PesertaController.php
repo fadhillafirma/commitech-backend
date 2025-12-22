@@ -4,10 +4,18 @@ namespace App\Http\Controllers;
 
 use App\Http\Resources\PesertaResource;
 use App\Models\Peserta;
+use App\Models\JadwalRekrutmen;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
-use PhpOffice\PhpSpreadsheet\IOFactory;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\PesertaLulusExport;
+use App\Imports\PesertaImport;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class PesertaController extends Controller
 {
@@ -481,6 +489,130 @@ class PesertaController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Gagal mengupdate status seleksi berkas',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Export data peserta yang lulus seleksi berkas ke CSV
+     */
+    public function exportToCSV()
+    {
+        try {
+            $filename = 'peserta_lulus_' . now()->format('Y-m-d_H-i-s') . '.csv';
+            
+            // Get all participants who passed the document selection
+            $pesertaLulus = Peserta::where('status_seleksi_berkas', 'lulus')
+                ->orderBy('nama', 'asc')
+                ->get();
+
+            if ($pesertaLulus->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tidak ada peserta yang lulus seleksi berkas',
+                ], 404);
+            }
+
+            // Create CSV headers
+            $headers = [
+                'Nama',
+                'NIM',
+                'Email',
+                'No. Telepon',
+                'Jurusan',
+                'Angkatan',
+                'Divisi Pilihan 1',
+                'Divisi Pilihan 2',
+                'Divisi Pilihan 3',
+                'Alasan Pilihan 1',
+                'Alasan Pilihan 2',
+                'Alasan Pilihan 3',
+                'Bersedia Pindah Divisi',
+                'Tanggal Daftar'
+            ];
+
+            // Create CSV content
+            $callback = function() use ($pesertaLulus, $headers) {
+                $file = fopen('php://output', 'w');
+                
+                // Add BOM for Excel compatibility
+                fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
+                
+                // Add headers
+                fputcsv($file, $headers);
+                
+                // Add data rows
+                foreach ($pesertaLulus as $peserta) {
+                    fputcsv($file, [
+                        $peserta->nama,
+                        $peserta->nim,
+                        $peserta->email,
+                        $peserta->telepon,
+                        $peserta->jurusan,
+                        $peserta->angkatan,
+                        $peserta->pilihan_divisi_1,
+                        $peserta->pilihan_divisi_2,
+                        $peserta->pilihan_divisi_3,
+                        $peserta->alasan_1,
+                        $peserta->alasan_2,
+                        $peserta->alasan_3,
+                        $peserta->pindah_divisi ? 'Ya' : 'Tidak',
+                        $peserta->created_at->format('Y-m-d H:i:s')
+                    ]);
+                }
+                
+                fclose($file);
+            };
+
+            return response()->stream($callback, 200, [
+                'Content-Type' => 'text/csv; charset=UTF-8',
+                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengekspor data ke CSV',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Export data peserta yang lulus seleksi berkas ke PDF
+     */
+    public function exportToPDF()
+    {
+        try {
+            $filename = 'peserta_lulus_' . now()->format('Y-m-d_H-i-s') . '.pdf';
+            
+            // Get all participants who passed the document selection
+            $pesertaLulus = Peserta::where('status_seleksi_berkas', 'lulus')
+                ->orderBy('nama', 'asc')
+                ->get();
+
+            if ($pesertaLulus->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tidak ada peserta yang lulus seleksi berkas',
+                ], 404);
+            }
+
+            $data = [
+                'title' => 'Daftar Peserta Lulus Seleksi Berkas',
+                'date' => now()->format('d F Y'),
+                'peserta' => $pesertaLulus
+            ];
+
+            $pdf = PDF::loadView('exports.peserta_lulus', $data);
+            
+            return $pdf->download($filename);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengekspor data ke PDF',
                 'error' => $e->getMessage()
             ], 500);
         }
