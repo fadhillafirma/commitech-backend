@@ -41,6 +41,7 @@ class PesertaResource extends JsonResource
             'waktu_jadwal' => $this->jadwalRekrutmen?->waktu_mulai,
             'lokasi' => $this->lokasi,
             'status_seleksi_berkas' => $this->status_seleksi_berkas ?? 'belum_direview',
+            'status_wawancara' => $this->status_wawancara ?? 'pending',
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),
         ];
