@@ -46,6 +46,11 @@ class HasilWawancaraController extends Controller
             'waktu_wawancara' => now(),
         ]);
 
+        // Update status_wawancara di tabel peserta
+        Peserta::where('id', $request->peserta_id)->update([
+            'status_wawancara' => $request->status
+        ]);
+
         $hasil->load('peserta');
 
         return response()->json([
@@ -87,6 +92,11 @@ class HasilWawancaraController extends Controller
             'status' => $request->status,
             'divisi' => $request->status === 'diterima' ? $request->divisi : null,
             'alasan' => $request->status === 'ditolak' ? $request->alasan : null,
+        ]);
+
+        // Update status_wawancara di tabel peserta
+        Peserta::where('id', $hasil->peserta_id)->update([
+            'status_wawancara' => $request->status
         ]);
 
         $hasil->load('peserta');

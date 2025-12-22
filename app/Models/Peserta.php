@@ -31,6 +31,7 @@ class Peserta extends Model
         'jadwal_rekrutmen_id',
         'lokasi',
         'status_seleksi_berkas',
+        'status_wawancara',
     ];
 
     /**
