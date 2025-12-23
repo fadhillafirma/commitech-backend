@@ -16,6 +16,7 @@ use App\Imports\PesertaImport;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 use Barryvdh\DomPDF\Facade\Pdf;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 
 class PesertaController extends Controller
 {
