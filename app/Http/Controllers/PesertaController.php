@@ -390,8 +390,9 @@ class PesertaController extends Controller
                         'pilihan_divisi_3' => !empty($row[10]) ? trim($row[10]) : null, // Pilihan 3 di index 10
                         'alasan_3' => !empty($row[11]) ? trim($row[11]) : null, // Alasan Memilih di index 11
                         'krs_terakhir' => !empty($row[12]) ? trim($row[12]) : null, // KRS Terakhir di index 12
-                        'formulir_pendaftaran' => !empty($row[13]) && (strtolower(trim($row[13])) === 'ya' || strtolower(trim($row[13])) === 'yes' || trim($row[13]) === '1'),
-                        'surat_komitmen' => !empty($row[14]) && (strtolower(trim($row[14])) === 'ya' || strtolower(trim($row[14])) === 'yes' || trim($row[14]) === '1'),
+                        // Formulir & surat berisi URL/link, jadi simpan string-nya langsung
+                        'formulir_pendaftaran' => !empty($row[13]) ? trim($row[13]) : null,
+                        'surat_komitmen' => !empty($row[14]) ? trim($row[14]) : null,
                         'pindah_divisi' => !empty($row[15]) && (strtolower(trim($row[15])) === 'ya' || strtolower(trim($row[15])) === 'yes' || trim($row[15]) === '1'),
                     ]);
 
