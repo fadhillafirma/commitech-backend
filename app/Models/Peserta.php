@@ -35,11 +35,9 @@ class Peserta extends Model
     ];
 
     /**
-     * Cast boolean fields to ensure JSON returns true/false instead of 0/1
+     * Cast fields that need special handling when serialized
      */
     protected $casts = [
-        'formulir_pendaftaran' => 'boolean',
-        'surat_komitmen' => 'boolean',
         'pindah_divisi' => 'boolean',
     ];
 
