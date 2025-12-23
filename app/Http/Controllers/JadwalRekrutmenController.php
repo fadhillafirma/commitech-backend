@@ -36,6 +36,7 @@ class JadwalRekrutmenController extends Controller
             'waktu_mulai' => 'required|string',
             'waktu_selesai' => 'required|string',
             'pewawancara' => 'nullable|string|max:255',
+            'lokasi' => 'nullable|string|max:255',
         ]);
 
         if ($validator->fails()) {
@@ -53,6 +54,7 @@ class JadwalRekrutmenController extends Controller
             'waktu_mulai' => $request->waktu_mulai,
             'waktu_selesai' => $request->waktu_selesai,
             'pewawancara' => $request->pewawancara ?? '-',
+            'lokasi' => $request->lokasi,
         ]);
 
         return response()->json([
@@ -104,6 +106,7 @@ class JadwalRekrutmenController extends Controller
             'waktu_mulai' => 'required|string',
             'waktu_selesai' => 'required|string',
             'pewawancara' => 'nullable|string|max:255',
+            'lokasi' => 'nullable|string|max:255',
         ]);
 
         if ($validator->fails()) {
@@ -121,6 +124,7 @@ class JadwalRekrutmenController extends Controller
             'waktu_mulai' => $request->waktu_mulai,
             'waktu_selesai' => $request->waktu_selesai,
             'pewawancara' => $request->pewawancara ?? '-',
+            'lokasi' => $request->lokasi,
         ]);
 
         return response()->json([
@@ -188,7 +192,6 @@ class JadwalRekrutmenController extends Controller
             // Format tanggal dan waktu dari jadwal
             $tanggalJadwal = $jadwal->tanggal_mulai;
             $waktuMulai = $jadwal->waktu_mulai;
-            $lokasi = "Sekretariat BEM KM FTI"; // Default lokasi atau bisa dari request
 
             // Update peserta dengan jadwal
             $pesertaIds = $request->peserta_ids;
@@ -206,7 +209,6 @@ class JadwalRekrutmenController extends Controller
                     // Update peserta dengan jadwal_rekrutmen_id
                     $peserta->update([
                         'jadwal_rekrutmen_id' => $jadwal->id,
-                        'lokasi' => $lokasi,
                     ]);
                     $updatedCount++;
                 }
@@ -288,7 +290,6 @@ class JadwalRekrutmenController extends Controller
         // Hapus jadwal dari peserta (set null)
         $peserta->update([
             'jadwal_rekrutmen_id' => null,
-            'lokasi' => null,
         ]);
 
         return response()->json([

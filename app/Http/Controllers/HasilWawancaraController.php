@@ -151,7 +151,7 @@ class HasilWawancaraController extends Controller
             'nama_peserta' => $hasil->peserta->nama ?? '-',
             'tanggal_jadwal' => $hasil->peserta->jadwalRekrutmen?->tanggal_mulai ?? '-',
             'waktu_jadwal' => $hasil->peserta->jadwalRekrutmen?->waktu_mulai ?? '-',
-            'lokasi' => $hasil->peserta->lokasi ?? '-',
+            'lokasi' => $hasil->peserta->jadwalRekrutmen?->lokasi ?? '-',
             'status' => $hasil->status,
             'divisi' => $hasil->divisi,
             'alasan' => $hasil->alasan,

@@ -29,7 +29,6 @@ class Peserta extends Model
         'surat_komitmen',
         'pindah_divisi',
         'jadwal_rekrutmen_id',
-        'lokasi',
         'status_seleksi_berkas',
         'status_wawancara',
     ];

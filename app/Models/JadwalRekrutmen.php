@@ -18,6 +18,7 @@ class JadwalRekrutmen extends Model
         'waktu_mulai',
         'waktu_selesai',
         'pewawancara',
+        'lokasi',
     ];
 
     public function peserta()

@@ -164,7 +164,6 @@ class PesertaController extends Controller
                 'alasan_1' => 'nullable|string',
                 'alasan_2' => 'nullable|string',
                 'jadwal_rekrutmen_id' => 'nullable|integer|exists:jadwal_rekrutmen,id',
-                'lokasi' => 'nullable|string|max:255',
             ]);
 
             $peserta = Peserta::create($validated);
@@ -214,7 +213,6 @@ class PesertaController extends Controller
                 'alasan_1' => 'nullable|string',
                 'alasan_2' => 'nullable|string',
                 'jadwal_rekrutmen_id' => 'nullable|integer|exists:jadwal_rekrutmen,id',
-                'lokasi' => 'nullable|string|max:255',
             ]);
 
             $peserta->update($validated);

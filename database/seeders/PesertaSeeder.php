@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\JadwalRekrutmen;
 use App\Models\Peserta;
 use Illuminate\Database\Seeder;
 
@@ -233,7 +234,29 @@ class PesertaSeeder extends Seeder
             ],
         ];
 
+        $jadwalByTanggal = [];
         foreach ($peserta as $p) {
+            $tanggalJadwal = $p['tanggal_jadwal'] ?? null;
+            $waktuJadwal = $p['waktu_jadwal'] ?? null;
+            $lokasi = $p['lokasi'] ?? null;
+
+            if (!empty($tanggalJadwal)) {
+                if (!array_key_exists($tanggalJadwal, $jadwalByTanggal)) {
+                    $jadwalByTanggal[$tanggalJadwal] = JadwalRekrutmen::create([
+                        'judul' => 'Jadwal Wawancara ' . $tanggalJadwal,
+                        'tanggal_mulai' => $tanggalJadwal,
+                        'tanggal_selesai' => $tanggalJadwal,
+                        'waktu_mulai' => $waktuJadwal ?? '09.00',
+                        'waktu_selesai' => '15.00',
+                        'pewawancara' => '-',
+                        'lokasi' => $lokasi,
+                    ]);
+                }
+
+                $p['jadwal_rekrutmen_id'] = $jadwalByTanggal[$tanggalJadwal]->id;
+            }
+
+            unset($p['tanggal_jadwal'], $p['waktu_jadwal'], $p['lokasi']);
             Peserta::create($p);
         }
     }
