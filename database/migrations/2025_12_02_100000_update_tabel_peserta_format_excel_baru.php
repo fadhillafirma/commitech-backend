@@ -9,7 +9,6 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('peserta', function (Blueprint $table) {
-            // Kolom baru sesuai format Excel
             $table->string('jurusan')->nullable()->after('nim');
             $table->string('angkatan')->nullable()->after('jurusan');
             $table->string('pilihan_divisi_3')->nullable()->after('pilihan_divisi_2');

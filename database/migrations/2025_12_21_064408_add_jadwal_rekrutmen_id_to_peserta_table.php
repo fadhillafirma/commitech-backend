@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('peserta', function (Blueprint $table) {
-            // Tambahkan kolom jadwal_rekrutmen_id sebagai foreign key
+      
             $table->foreignId('jadwal_rekrutmen_id')
                 ->nullable()
                 ->after('lokasi')

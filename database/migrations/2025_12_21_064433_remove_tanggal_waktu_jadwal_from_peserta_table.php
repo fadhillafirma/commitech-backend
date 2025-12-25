@@ -6,10 +6,7 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     * Hapus kolom tanggal_jadwal dan waktu_jadwal setelah migrasi ke jadwal_rekrutmen_id
-     */
+   
     public function up(): void
     {
         Schema::table('peserta', function (Blueprint $table) {
@@ -17,10 +14,7 @@ return new class extends Migration
         });
     }
 
-    /**
-     * Reverse the migrations.
-     * Tambahkan kembali kolom tanggal_jadwal dan waktu_jadwal
-     */
+  
     public function down(): void
     {
         Schema::table('peserta', function (Blueprint $table) {
