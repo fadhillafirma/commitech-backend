@@ -32,10 +32,8 @@ class PesertaResource extends JsonResource
             'formulir_pendaftaran' =>$this->formulir_pendaftaran,
             'surat_komitmen' =>$this->surat_komitmen,
             
-            // ✅ Guarantee boolean type - fix boolean issue!
             'pindah_divisi' => (bool) $this->pindah_divisi,
             
-            // Jadwal wawancara menggunakan jadwal_rekrutmen_id
             'jadwal_rekrutmen_id' => $this->jadwal_rekrutmen_id,
             'tanggal_jadwal' => $this->jadwalRekrutmen?->tanggal_mulai,
             'waktu_jadwal' => $this->jadwalRekrutmen?->waktu_mulai,

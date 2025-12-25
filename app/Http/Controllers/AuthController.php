@@ -11,13 +11,6 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
-    /**
-     * Register a new user - INSTAGRAM STYLE
-     * 
-     * - Create user account
-     * - Create session dengan device info
-     * - Session expire 7 days
-     */
     public function register(Request $request)
     {
         try {
@@ -36,18 +29,15 @@ class AuthController extends Controller
                 'password' => Hash::make($validated['password']),
             ]);
 
-            // Create token dengan device info (7 days expiry)
             $token = $user->createToken(
                 $request->device_name,
                 ['*'],
                 now()->addDays(7)
             )->plainTextToken;
             
-            // Get token ID from token
             $tokenId = explode('|', $token)[0] ?? null;
             
             if ($tokenId) {
-                // Update token record dengan device info
                 DB::table('personal_access_tokens')
                     ->where('id', $tokenId)
                     ->update([
@@ -85,18 +75,9 @@ class AuthController extends Controller
         }
     }
 
-    /**
-     * Login user - INSTAGRAM STYLE
-     * 
-     * - Multi-device support (tidak delete old tokens)
-     * - Check existing session untuk device yang sama
-     * - Update existing session atau create new
-     * - Session expire 7 days
-     */
     public function login(Request $request)
     {
         try {
-            // Log incoming request untuk debugging
             \Log::info('Login attempt', [
                 'email' => $request->email,
                 'has_password' => !empty($request->password),
@@ -105,10 +86,8 @@ class AuthController extends Controller
                 'device_id' => $request->device_id ?? 'missing',
             ]);
             
-            // Trim email untuk menghilangkan whitespace dan pastikan tidak kosong
             $email = trim($request->email ?? '');
             
-            // Validasi email tidak kosong setelah trim
             if (empty($email)) {
                 \Log::warning('Login failed: Empty email after trim');
                 return response()->json([
@@ -120,12 +99,11 @@ class AuthController extends Controller
                 ], 422);
             }
             
-            // Merge email yang sudah di-trim ke request
             $request->merge(['email' => $email]);
             
             try {
                 $request->validate([
-                    'email' => 'required|email', // Validasi email standard
+                    'email' => 'required|email',
                     'password' => 'required',
                     'device_name' => 'required|string',
                     'device_type' => 'required|string',
@@ -140,7 +118,6 @@ class AuthController extends Controller
                 ], 422);
             }
 
-            // Gunakan email yang sudah di-trim untuk query (case-insensitive)
             $user = User::whereRaw('LOWER(email) = ?', [strtolower($email)])->first();
 
             if (!$user) {
@@ -154,7 +131,6 @@ class AuthController extends Controller
                 ], 422);
             }
 
-            // Verify password
             if (!Hash::check($request->password, $user->password)) {
                 \Log::warning('Login attempt failed: Invalid password', [
                     'email' => $email,
@@ -171,7 +147,6 @@ class AuthController extends Controller
             
             \Log::info('Login successful', ['email' => $email, 'user_id' => $user->id]);
 
-            // CRITICAL: Check if device already has token di personal_access_tokens
             $existingToken = DB::table('personal_access_tokens')
                 ->where('tokenable_id', $user->id)
                 ->where('tokenable_type', User::class)
@@ -183,7 +158,6 @@ class AuthController extends Controller
                 ->first();
             
             if ($existingToken) {
-                // Device sudah punya token yang masih valid, update saja
                 DB::table('personal_access_tokens')
                     ->where('id', $existingToken->id)
                     ->update([
@@ -195,20 +169,14 @@ class AuthController extends Controller
                         'last_used_at' => now(),
                     ]);
                 
-                // Get token hash untuk reconstruct token
-                // Note: Kita tidak bisa reconstruct token dari hash, jadi kita perlu buat token baru
-                // atau simpan token plain di database (tidak recommended untuk security)
-                // Solusi: Delete token lama dan buat baru dengan device yang sama
                 DB::table('personal_access_tokens')->where('id', $existingToken->id)->delete();
                 
-                // Create new token untuk device yang sama
                 $token = $user->createToken(
                     $request->device_name,
                     ['*'],
                     now()->addDays(7)
                 )->plainTextToken;
-                
-                // Update token dengan device info
+
                 $tokenId = explode('|', $token)[0] ?? null;
                 if ($tokenId) {
                     DB::table('personal_access_tokens')
@@ -222,18 +190,15 @@ class AuthController extends Controller
                         ]);
                 }
             } else {
-                // Device baru, create new token (7 days expiry)
                 $token = $user->createToken(
                     $request->device_name,
                     ['*'],
                     now()->addDays(7)
                 )->plainTextToken;
                 
-                // Get token ID from token
                 $tokenId = explode('|', $token)[0] ?? null;
                 
                 if ($tokenId) {
-                    // Update token record dengan device info
                     DB::table('personal_access_tokens')
                         ->where('id', $tokenId)
                         ->update([
@@ -272,9 +237,6 @@ class AuthController extends Controller
         }
     }
 
-    /**
-     * Logout user
-     */
     public function logout(Request $request)
     {
         $request->user()->currentAccessToken()->delete();
@@ -285,9 +247,6 @@ class AuthController extends Controller
         ]);
     }
 
-    /**
-     * Get authenticated user
-     */
     public function user(Request $request)
     {
         return response()->json([
@@ -302,25 +261,13 @@ class AuthController extends Controller
         ]);
     }
     
-    /**
-     * Get location from IP address
-     * 
-     * INSTAGRAM-STYLE:
-     * - Track user location untuk security
-     * - Show di Active Sessions
-     * - Detect suspicious login
-     * 
-     * Uses ip-api.com (free, no API key required)
-     */
     private function getLocationFromIp($ip)
     {
-        // Skip for local IPs
         if (in_array($ip, ['127.0.0.1', '::1', 'localhost'])) {
             return 'Local';
         }
         
         try {
-            // Call ip-api.com (free, 45 req/min limit)
             $response = Http::timeout(2)->get("http://ip-api.com/json/{$ip}");
             
             if ($response->successful()) {
@@ -330,7 +277,6 @@ class AuthController extends Controller
                 }
             }
         } catch (\Exception $e) {
-            // Ignore error, return Unknown
         }
         
         return 'Unknown';

@@ -33,9 +33,6 @@ class Peserta extends Model
         'status_wawancara',
     ];
 
-    /**
-     * Cast fields that need special handling when serialized
-     */
     protected $casts = [
         'pindah_divisi' => 'boolean',
     ];

@@ -14,9 +14,6 @@ use PhpOffice\PhpSpreadsheet\Style\Fill;
 
 class EksporController extends Controller
 {
-    /**
-     * 20. Generate file hasil seleksi dalam format Excel
-     */
     public function generate()
     {
         try {
@@ -39,9 +36,6 @@ class EksporController extends Controller
         }
     }
 
-    /**
-     * Download file Excel langsung
-     */
     public function unduh()
     {
         try {
@@ -65,7 +59,6 @@ class EksporController extends Controller
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Hasil Seleksi');
 
-        // Style header
         $styleHeader = [
             'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
             'fill' => [
@@ -81,7 +74,6 @@ class EksporController extends Controller
             ]
         ];
 
-        // Set header
         $headers = ['No', 'Nama', 'NIM', 'Divisi', 'Status', 'Tanggal Wawancara', 'Alasan Penolakan'];
         $kolom = 'A';
         foreach ($headers as $header) {
@@ -90,12 +82,10 @@ class EksporController extends Controller
         }
         $sheet->getStyle('A1:G1')->applyFromArray($styleHeader);
 
-        // Ambil data
         $hasil = HasilWawancara::with('peserta')
             ->orderBy('status', 'asc')
             ->get();
 
-        // Isi data
         $baris = 2;
         $no = 1;
         foreach ($hasil as $h) {
@@ -107,7 +97,6 @@ class EksporController extends Controller
             $sheet->setCellValue('F' . $baris, $h->waktu_wawancara?->format('d M Y H:i') ?? '-');
             $sheet->setCellValue('G' . $baris, $h->alasan ?? '-');
 
-            // Warna berdasarkan status
             if ($h->status === 'diterima') {
                 $sheet->getStyle('E' . $baris)->getFill()
                     ->setFillType(Fill::FILL_SOLID)
@@ -122,12 +111,10 @@ class EksporController extends Controller
             $no++;
         }
 
-        // Auto-size kolom
         foreach (range('A', 'G') as $kol) {
             $sheet->getColumnDimension($kol)->setAutoSize(true);
         }
 
-        // Tambah border ke data
         $barisTerakhir = $baris - 1;
         if ($barisTerakhir >= 2) {
             $sheet->getStyle('A2:G' . $barisTerakhir)->applyFromArray([
@@ -137,7 +124,6 @@ class EksporController extends Controller
             ]);
         }
 
-        // Sheet ringkasan
         $sheetRingkasan = $spreadsheet->createSheet();
         $sheetRingkasan->setTitle('Ringkasan');
 

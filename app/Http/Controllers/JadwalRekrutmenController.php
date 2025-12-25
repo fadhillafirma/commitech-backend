@@ -10,9 +10,6 @@ use Illuminate\Support\Facades\DB;
 
 class JadwalRekrutmenController extends Controller
 {
-    /**
-     * Daftar semua jadwal rekrutmen
-     */
     public function index()
     {
         $jadwal = JadwalRekrutmen::orderBy('tanggal_mulai', 'asc')->get();
@@ -24,9 +21,6 @@ class JadwalRekrutmenController extends Controller
         ], 200);
     }
 
-    /**
-     * Simpan jadwal rekrutmen baru
-     */
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -64,9 +58,6 @@ class JadwalRekrutmenController extends Controller
         ], 201);
     }
 
-    /**
-     * Lihat detail jadwal rekrutmen
-     */
     public function show($id)
     {
         $jadwal = JadwalRekrutmen::find($id);
@@ -85,9 +76,6 @@ class JadwalRekrutmenController extends Controller
         ], 200);
     }
 
-    /**
-     * Ubah jadwal rekrutmen
-     */
     public function update(Request $request, $id)
     {
         $jadwal = JadwalRekrutmen::find($id);
@@ -134,9 +122,6 @@ class JadwalRekrutmenController extends Controller
         ], 200);
     }
 
-    /**
-     * Hapus jadwal rekrutmen
-     */
     public function destroy($id)
     {
         $jadwal = JadwalRekrutmen::find($id);
@@ -156,12 +141,6 @@ class JadwalRekrutmenController extends Controller
         ], 200);
     }
 
-    /**
-     * Assign peserta ke jadwal rekrutmen
-     * 
-     * Endpoint: POST /api/jadwal-rekrutmen/{id}/peserta
-     * Body: { "peserta_ids": [1, 2, 3] }
-     */
     public function assignPeserta(Request $request, $id)
     {
         $jadwal = JadwalRekrutmen::find($id);
@@ -189,16 +168,13 @@ class JadwalRekrutmenController extends Controller
         try {
             DB::beginTransaction();
 
-            // Format tanggal dan waktu dari jadwal
             $tanggalJadwal = $jadwal->tanggal_mulai;
             $waktuMulai = $jadwal->waktu_mulai;
 
-            // Update peserta dengan jadwal
             $pesertaIds = $request->peserta_ids;
             $updatedCount = 0;
-            $waktuPerPeserta = []; // Untuk distribusi waktu per peserta
+            $waktuPerPeserta = [];
 
-            // Hitung interval waktu per peserta (asumsi durasi per peserta 6 menit)
             $waktuMulaiParts = explode(':', $waktuMulai);
             $jamMulai = (int)($waktuMulaiParts[0] ?? 0);
             $menitMulai = (int)($waktuMulaiParts[1] ?? 0);
@@ -206,7 +182,6 @@ class JadwalRekrutmenController extends Controller
             foreach ($pesertaIds as $pesertaId) {
                 $peserta = Peserta::find($pesertaId);
                 if ($peserta) {
-                    // Update peserta dengan jadwal_rekrutmen_id
                     $peserta->update([
                         'jadwal_rekrutmen_id' => $jadwal->id,
                     ]);
@@ -234,11 +209,6 @@ class JadwalRekrutmenController extends Controller
         }
     }
 
-    /**
-     * Get peserta yang di-assign ke jadwal rekrutmen
-     * 
-     * Endpoint: GET /api/jadwal-rekrutmen/{id}/peserta
-     */
     public function getPeserta($id)
     {
         $jadwal = JadwalRekrutmen::find($id);
@@ -250,7 +220,6 @@ class JadwalRekrutmenController extends Controller
             ], 404);
         }
 
-        // Cari peserta yang memiliki jadwal_rekrutmen_id sama dengan jadwal ini
         $peserta = Peserta::where('jadwal_rekrutmen_id', $jadwal->id)
             ->orderBy('id', 'asc')
             ->get();
@@ -262,11 +231,6 @@ class JadwalRekrutmenController extends Controller
         ], 200);
     }
 
-    /**
-     * Remove peserta dari jadwal rekrutmen
-     * 
-     * Endpoint: DELETE /api/jadwal-rekrutmen/{id}/peserta/{pesertaId}
-     */
     public function removePeserta($id, $pesertaId)
     {
         $jadwal = JadwalRekrutmen::find($id);
@@ -287,7 +251,6 @@ class JadwalRekrutmenController extends Controller
             ], 404);
         }
 
-        // Hapus jadwal dari peserta (set null)
         $peserta->update([
             'jadwal_rekrutmen_id' => null,
         ]);

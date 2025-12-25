@@ -26,15 +26,6 @@ class FirebaseService
         $this->messaging = $factory->createMessaging();
     }
 
-    /**
-     * Send notification to single device
-     *
-     * @param string $token FCM device token
-     * @param string $title Notification title
-     * @param string $body Notification body
-     * @param array $data Additional data payload
-     * @return bool Success status
-     */
     public function sendToDevice(string $token, string $title, string $body, array $data = []): bool
     {
         try {
@@ -56,7 +47,6 @@ class FirebaseService
                 'code' => $e->getCode()
             ]);
 
-            // Handle invalid/expired tokens
             if ($this->isInvalidTokenError($e)) {
                 $this->removeInvalidToken($token);
             }
@@ -68,15 +58,6 @@ class FirebaseService
         }
     }
 
-    /**
-     * Send notification to multiple devices
-     *
-     * @param array $tokens Array of FCM device tokens
-     * @param string $title Notification title
-     * @param string $body Notification body
-     * @param array $data Additional data payload
-     * @return array|bool Report or false on failure
-     */
     public function sendToMultipleDevices(array $tokens, string $title, string $body, array $data = [])
     {
         if (empty($tokens)) {
@@ -97,7 +78,6 @@ class FirebaseService
                 'total_tokens' => count($tokens)
             ]);
 
-            // Handle failed tokens
             foreach ($report->failures()->getItems() as $failure) {
                 $failedToken = $failure->target()->value();
                 Log::warning("Failed to send to token", [
@@ -117,15 +97,6 @@ class FirebaseService
         }
     }
 
-    /**
-     * Send notification to all admin users
-     *
-     * @param string $title Notification title
-     * @param string $body Notification body
-     * @param array $data Additional data payload
-     * @param int|null $exceptUserId Exclude specific user ID
-     * @return array|bool Report or false on failure
-     */
     public function sendToAllAdmins(string $title, string $body, array $data = [], ?int $exceptUserId = null)
     {
         $query = DB::table('fcm_tokens')
@@ -151,15 +122,6 @@ class FirebaseService
         return $this->sendToMultipleDevices($tokens, $title, $body, $data);
     }
 
-    /**
-     * Send notification to specific user (all their devices)
-     *
-     * @param int $userId User ID
-     * @param string $title Notification title
-     * @param string $body Notification body
-     * @param array $data Additional data payload
-     * @return array|bool Report or false on failure
-     */
     public function sendToUser(int $userId, string $title, string $body, array $data = [])
     {
         $tokens = DB::table('fcm_tokens')
@@ -175,12 +137,6 @@ class FirebaseService
         return $this->sendToMultipleDevices($tokens, $title, $body, $data);
     }
 
-    /**
-     * Check if error is related to invalid token
-     *
-     * @param MessagingException $e
-     * @return bool
-     */
     protected function isInvalidTokenError(MessagingException $e): bool
     {
         $errorMessage = strtolower($e->getMessage());
@@ -191,12 +147,6 @@ class FirebaseService
                $e->getCode() === 404;
     }
 
-    /**
-     * Remove invalid token from database
-     *
-     * @param string $token
-     * @return void
-     */
     protected function removeInvalidToken(string $token): void
     {
         try {
@@ -212,12 +162,6 @@ class FirebaseService
         }
     }
 
-    /**
-     * Get FCM token count for a user
-     *
-     * @param int $userId
-     * @return int
-     */
     public function getUserTokenCount(int $userId): int
     {
         return DB::table('fcm_tokens')
@@ -225,11 +169,6 @@ class FirebaseService
             ->count();
     }
 
-    /**
-     * Get all active admin tokens count
-     *
-     * @return int
-     */
     public function getAdminTokenCount(): int
     {
         return DB::table('fcm_tokens')

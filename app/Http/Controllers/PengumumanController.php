@@ -9,9 +9,6 @@ use Illuminate\Support\Facades\Validator;
 
 class PengumumanController extends Controller
 {
-    /**
-     * 18. Buat pengumuman akhir seleksi (Create)
-     */
     public function simpan(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -35,7 +32,6 @@ class PengumumanController extends Controller
             'tanggal_publikasi' => now(),
         ]);
 
-        // Tambahkan peserta jika ada
         if ($request->has('peserta_ids') && is_array($request->peserta_ids)) {
             $pengumuman->peserta()->attach($request->peserta_ids);
         }
@@ -49,9 +45,6 @@ class PengumumanController extends Controller
         ], 201);
     }
 
-    /**
-     * 19. Lihat pengumuman akhir (Read)
-     */
     public function daftar()
     {
         $pengumuman = Pengumuman::with('peserta.hasilWawancara')
@@ -65,9 +58,6 @@ class PengumumanController extends Controller
         ]);
     }
 
-    /**
-     * Lihat pengumuman by ID
-     */
     public function lihat($id)
     {
         $pengumuman = Pengumuman::with('peserta.hasilWawancara')->find($id);

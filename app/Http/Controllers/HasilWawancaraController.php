@@ -9,9 +9,6 @@ use Illuminate\Support\Facades\Validator;
 
 class HasilWawancaraController extends Controller
 {
-    /**
-     * 16. Input hasil wawancara (Create)
-     */
     public function simpan(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -29,7 +26,6 @@ class HasilWawancaraController extends Controller
             ], 422);
         }
 
-        // Cek apakah sudah ada
         $existing = HasilWawancara::where('peserta_id', $request->peserta_id)->first();
         if ($existing) {
             return response()->json([
@@ -46,7 +42,6 @@ class HasilWawancaraController extends Controller
             'waktu_wawancara' => now(),
         ]);
 
-        // Update status_wawancara di tabel peserta
         Peserta::where('id', $request->peserta_id)->update([
             'status_wawancara' => $request->status
         ]);
@@ -60,9 +55,6 @@ class HasilWawancaraController extends Controller
         ], 201);
     }
 
-    /**
-     * 17. Ubah hasil wawancara (Update)
-     */
     public function ubah(Request $request, $id)
     {
         $hasil = HasilWawancara::find($id);
@@ -94,7 +86,6 @@ class HasilWawancaraController extends Controller
             'alasan' => $request->status === 'ditolak' ? $request->alasan : null,
         ]);
 
-        // Update status_wawancara di tabel peserta
         Peserta::where('id', $hasil->peserta_id)->update([
             'status_wawancara' => $request->status
         ]);
@@ -108,9 +99,6 @@ class HasilWawancaraController extends Controller
         ]);
     }
 
-    /**
-     * Lihat semua hasil wawancara
-     */
     public function daftar()
     {
         $hasil = HasilWawancara::with('peserta')->get();
@@ -122,9 +110,6 @@ class HasilWawancaraController extends Controller
         ]);
     }
 
-    /**
-     * Lihat hasil wawancara by ID
-     */
     public function lihat($id)
     {
         $hasil = HasilWawancara::with('peserta')->find($id);

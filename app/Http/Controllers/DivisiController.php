@@ -8,9 +8,6 @@ use Illuminate\Support\Facades\Validator;
 
 class DivisiController extends Controller
 {
-    /**
-     * Ambil daftar divisi untuk dropdown
-     */
     public function daftar()
     {
         $divisi = Divisi::all();
@@ -26,9 +23,6 @@ class DivisiController extends Controller
         ]);
     }
 
-    /**
-     * Tambah divisi baru
-     */
     public function tambah(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -60,9 +54,6 @@ class DivisiController extends Controller
         ], 201);
     }
 
-    /**
-     * Ubah divisi
-     */
     public function ubah(Request $request, $id)
     {
         $divisi = Divisi::find($id);
@@ -103,9 +94,6 @@ class DivisiController extends Controller
         ]);
     }
 
-    /**
-     * Hapus divisi
-     */
     public function hapus($id)
     {
         $divisi = Divisi::find($id);

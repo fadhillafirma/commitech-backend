@@ -9,12 +9,6 @@ use Illuminate\Support\Facades\Validator;
 
 class FCMController extends Controller
 {
-    /**
-     * Register or update FCM token for authenticated user
-     *
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
-     */
     public function register(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -59,12 +53,6 @@ class FCMController extends Controller
         }
     }
 
-    /**
-     * Unregister FCM token (usually on logout)
-     *
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
-     */
     public function unregister(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -98,11 +86,6 @@ class FCMController extends Controller
         }
     }
 
-    /**
-     * Get user's registered devices
-     *
-     * @return \Illuminate\Http\JsonResponse
-     */
     public function getDevices()
     {
         try {
@@ -126,12 +109,6 @@ class FCMController extends Controller
         }
     }
 
-    /**
-     * Delete specific device token
-     *
-     * @param int $id
-     * @return \Illuminate\Http\JsonResponse
-     */
     public function deleteDevice($id)
     {
         try {
