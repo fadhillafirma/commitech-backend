@@ -1,8 +1,5 @@
 <?php
 
-/**
- * Check personal_access_tokens table structure
- */
 
 require __DIR__.'/vendor/autoload.php';
 

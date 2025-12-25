@@ -150,7 +150,6 @@ class EksporController extends Controller
         $sheetRingkasan->getColumnDimension('A')->setWidth(20);
         $sheetRingkasan->getColumnDimension('B')->setWidth(15);
 
-        // Simpan file
         $pathEkspor = storage_path('app/public/ekspor');
         if (!file_exists($pathEkspor)) {
             mkdir($pathEkspor, 0755, true);

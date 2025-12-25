@@ -1,11 +1,5 @@
 <?php
 
-/**
- * Quick script to check session in database
- * 
- * Usage:
- * php check_session.php 48
- */
 
 require __DIR__.'/vendor/autoload.php';
 
